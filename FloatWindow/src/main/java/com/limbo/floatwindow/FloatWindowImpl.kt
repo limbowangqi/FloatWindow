@@ -79,12 +79,13 @@ class FloatWindowImpl// 默认配置
 
     override fun hide() {
         try {
+            activity?.application?.unregisterActivityLifecycleCallbacks(activityLifecycle)
+
             if (!isShowing){
                 return
             }
             isShowing = false
 
-            activity?.application?.unregisterActivityLifecycleCallbacks(activityLifecycle)
             windowManager?.removeView(builder.contentView)
         } catch (e: Exception) {
             e.printStackTrace()
