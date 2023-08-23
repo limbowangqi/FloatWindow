@@ -3,6 +3,7 @@ package com.limbo.floatwindow.draggable
 import android.view.View
 import com.limbo.floatwindow.FloatWindow
 import com.limbo.floatwindow.IFloatWindow
+import kotlin.math.abs
 
 
 /**
@@ -24,8 +25,18 @@ abstract class BaseDraggable : View.OnTouchListener {
     /**
      * 更新位置信息
      */
-    protected fun updateLocation(x: Int, y: Int) {
-        floatBuilder.setAbsoluteXY(x, y)
+    protected fun updateLocation(x: Int?, y: Int?) {
+        floatBuilder.setAbsoluteXY(
+            x ?: floatBuilder.absoluteXY.first,
+            y ?: floatBuilder.absoluteXY.second
+        )
         floatWindow?.notifyDataChange()
+    }
+
+    protected fun isMovingXY(startX: Float, startY: Float, endX:Float, endY:Float):Boolean{
+        if (abs(endX - startX) < 10 && abs(endY - startY) < 10){
+            return false
+        }
+        return true
     }
 }

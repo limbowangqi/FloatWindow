@@ -14,5 +14,7 @@ interface IFloatWindow {
 
     fun hide()
 
+    fun isShowing():Boolean
+
     fun notifyDataChange()
 }

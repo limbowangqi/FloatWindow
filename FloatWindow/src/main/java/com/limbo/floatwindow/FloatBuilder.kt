@@ -17,16 +17,16 @@ class FloatBuilder {
     internal var contentView: View? = null
 
     // 相对位置
-    internal var gravity: Int = Gravity.TOP or Gravity.START
+//    internal var gravity: Int = Gravity.TOP or Gravity.START
 
     // 绝对位置xy坐标
     internal var absoluteXY: Pair<Int, Int> = Pair(0, 0)
 
-    // 外部阴影0-1
-    internal var dimAmount: Float = 0f
-
-    // 是否外部可以点击
-    internal var touchable: Boolean = true
+//    // 外部阴影0-1
+//    internal var dimAmount: Float = 0f
+//
+//    // 是否外部可以点击
+//    internal var touchable: Boolean = true
 
     //是否可以拖拽
     internal var draggable: BaseDraggable? = null
@@ -37,10 +37,10 @@ class FloatBuilder {
     }
 
 
-    fun setGravity(gravity: Int): FloatBuilder {
-        this.gravity = gravity
-        return this
-    }
+//    fun setGravity(gravity: Int): FloatBuilder {
+//        this.gravity = gravity
+//        return this
+//    }
 
 
     fun setAbsoluteXY(x: Int, y: Int): FloatBuilder {
@@ -49,16 +49,16 @@ class FloatBuilder {
     }
 
 
-    fun setBackgroundDimAmount(@FloatRange(from = 0.0, to = 1.0) amount: Float): FloatBuilder {
-        this.dimAmount = amount
-        return this
-    }
+//    fun setBackgroundDimAmount(@FloatRange(from = 0.0, to = 1.0) amount: Float): FloatBuilder {
+//        this.dimAmount = amount
+//        return this
+//    }
 
 
-    fun setOutsideTouchable(touchable: Boolean): FloatBuilder {
-        this.touchable = touchable
-        return this
-    }
+//    fun setOutsideTouchable(touchable: Boolean): FloatBuilder {
+//        this.touchable = touchable
+//        return this
+//    }
 
 
     fun setDraggable(draggable: BaseDraggable): FloatBuilder {

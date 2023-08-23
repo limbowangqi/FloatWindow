@@ -2,12 +2,8 @@ package com.limbo.floatwindow
 
 import android.app.Activity
 import android.content.Context
-import android.graphics.PixelFormat
-import android.os.Handler
-import android.os.Looper
-import android.os.Message
-import android.view.WindowManager
-import java.lang.ref.WeakReference
+import android.view.ViewGroup
+import android.widget.FrameLayout
 
 /**
  *
@@ -18,29 +14,21 @@ import java.lang.ref.WeakReference
 class FloatWindowImpl// 默认配置
     (private val builder: FloatBuilder) : IFloatWindow {
     // 属性
-    private val windowParams by lazy { WindowManager.LayoutParams() }
+    private val layoutParams by lazy {
+        FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        )
+    }
     private val activityLifecycle by lazy { ActivityLifecycle(this) }
 
-    private val handler = MyHandler(WeakReference(this))
     private var activity: Activity? = null
-    private var windowManager: WindowManager? = null
-    private var isShowing = false
 
-    init {
-        builder.run {
-            windowParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_ATTACHED_DIALOG
-            windowParams.height = WindowManager.LayoutParams.WRAP_CONTENT
-            windowParams.width = WindowManager.LayoutParams.WRAP_CONTENT
-            windowParams.format = PixelFormat.TRANSLUCENT
-            windowParams.windowAnimations = android.R.style.Animation_Toast
-            windowParams.flags =
-                (WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_DIM_BEHIND )
-        }
-    }
+    private var isShowing = false
 
     override fun show(activity: Activity) {
         try {// check
-            if (builder.contentView == null){
+            if (builder.contentView == null) {
                 throw NullPointerException("contentView is must not be null")
             }
 
@@ -48,7 +36,7 @@ class FloatWindowImpl// 默认配置
 
             this.activity = activity
 
-            handler.sendMessageDelayed(handler.obtainMessage(), 100)
+            show()
 
             // 设置监听
             activity.application?.registerActivityLifecycleCallbacks(activityLifecycle)
@@ -69,8 +57,10 @@ class FloatWindowImpl// 默认配置
                 // 自定义配置
                 updateWindowParams()
 
-                // 添加布局
-                windowManager?.addView(contentView, windowParams)
+                if (contentView?.parent != null) {
+                    (contentView?.parent as ViewGroup?)?.removeView(contentView)
+                }
+                getViewGroup(activity)?.addView(contentView, layoutParams)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -79,17 +69,21 @@ class FloatWindowImpl// 默认配置
 
     override fun hide() {
         try {
-            activity?.application?.unregisterActivityLifecycleCallbacks(activityLifecycle)
-
-            if (!isShowing){
+            if (!isShowing) {
                 return
             }
             isShowing = false
 
-            windowManager?.removeView(builder.contentView)
+            activity?.application?.unregisterActivityLifecycleCallbacks(activityLifecycle)
+
+            getViewGroup(activity)?.removeView(builder.contentView)
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    override fun isShowing(): Boolean {
+        return isShowing
     }
 
     /**
@@ -99,7 +93,7 @@ class FloatWindowImpl// 默认配置
         try {
             updateWindowParams()
 
-            windowManager?.updateViewLayout(builder.contentView, windowParams)
+            getViewGroup(activity)?.updateViewLayout(builder.contentView, layoutParams)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -108,41 +102,66 @@ class FloatWindowImpl// 默认配置
     /**
      * 更新参数配置
      */
-    private fun updateWindowParams(){
+    private fun updateWindowParams() {
         builder.run {
-            windowParams.gravity = gravity
-            windowParams.dimAmount = dimAmount
-            windowParams.x = absoluteXY.first
-            windowParams.y = absoluteXY.second
-            val flags =
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-            if (touchable) {
-                windowParams.flags = windowParams.flags or flags
-            } else {
-                windowParams.flags = windowParams.flags and flags.inv()
+            contentView?.measure(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+            var left = absoluteXY.first
+            if (absoluteXY.first < 0){
+                left = 0
+            }else if (absoluteXY.first > (getScreenWidth(activity!!) - (contentView?.measuredWidth?:0))){
+                left = (getScreenWidth(activity!!) - (contentView?.measuredWidth?:0))
             }
+
+            var top = absoluteXY.second
+            if (absoluteXY.second < 0){
+                top = 0
+            }else if (absoluteXY.second > (getScreenHeight(activity!!) - (contentView?.measuredHeight?:0))){
+                top = (getScreenHeight(activity!!) - (contentView?.measuredHeight?:0))
+            }
+
+            builder.setAbsoluteXY(left, top)
+
+            layoutParams.setMargins(
+                left,
+                top,
+                0,
+                0
+            )
+
             // 绑定滑动
             draggable?.bindingFloatWindow(this@FloatWindowImpl)
         }
     }
 
-    private class MyHandler(val weakReference: WeakReference<FloatWindowImpl>) :
-        Handler(Looper.getMainLooper()) {
-        override fun handleMessage(msg: Message) {
-            super.handleMessage(msg)
-            weakReference.get()?.run {
-                val token = activity?.window?.decorView?.windowToken
-                if (token == null) {
-                    handler.sendMessageDelayed(handler.obtainMessage(), 100)
-                } else {
-                    windowManager =
-                        activity?.getSystemService(Context.WINDOW_SERVICE) as WindowManager?
-
-                    windowParams.token = token
-                    show()
-                }
-            }
-        }
+    private fun getViewGroup(activity: Activity?): ViewGroup? {
+        return activity?.findViewById<ViewGroup>(android.R.id.content)
     }
+
+    private fun getScreenWidth(context: Context): Int {
+        return context.resources.displayMetrics.widthPixels
+    }
+
+    private fun getScreenHeight(context: Context): Int {
+        return context.resources.displayMetrics.heightPixels
+    }
+
+//    private class MyHandler(val weakReference: WeakReference<FloatWindowImpl>) :
+//        Handler(Looper.getMainLooper()) {
+//        override fun handleMessage(msg: Message) {
+//            super.handleMessage(msg)
+//            weakReference.get()?.run {
+//                val token = activity?.window?.decorView?.windowToken
+//                if (token == null) {
+//                    handler.sendMessageDelayed(handler.obtainMessage(), 100)
+//                } else {
+//                    windowManager =
+//                        activity?.getSystemService(Context.WINDOW_SERVICE) as WindowManager?
+//
+//                    windowParams.token = token
+//                    show()
+//                }
+//            }
+//        }
+//    }
 
 }
